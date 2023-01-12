@@ -32,6 +32,15 @@ def get_single_order(id):
 
     return requested_order
 
+def update_order(id, new_order):
+    # Iterate the ANIMALS list, but use enumerate() so that
+    # you can access the index value of each item.
+    for index, order in enumerate(ORDERS):
+        if order["id"] == id:
+            # Found the animal. Update the value.
+            ORDERS[index] = new_order
+            break
+
 def create_order(order):
     """_summary_
 
@@ -60,18 +69,3 @@ def delete_order(id):
 
     if order_index >= 0:
         ORDERS.pop(order_index)
-
-def update_order(id, new_order):
-    """_summary_
-
-    Args:
-        id (_type_): _description_
-        new_employee (_type_): _description_
-    """
-    # Iterate the ANIMALS list, but use enumerate() so that
-    # you can access the index value of each item.
-    for index, order in enumerate(ORDERS):
-        if order["id"] == id:
-            # Found the animal. Update the value.
-            ORDERS[index] = new_order
-            break
