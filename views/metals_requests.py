@@ -1,3 +1,7 @@
+import sqlite3
+import json
+from models import Metal
+
 METALS = [
     {
         "id": 1,
@@ -31,12 +35,30 @@ METALS = [
 ]
 
 def get_all_metals():
-    """_summary_
+    """Returns list of dictionaries stored in METALS variable"""
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        conn.row_factory = sqlite3.Row
+        db_cursor = conn.cursor()
 
-    Returns:
-        _type_: _description_
-    """
-    return METALS
+        db_cursor.execute("""
+        SELECT
+            m.id,
+            m.metal,
+            m.price
+        FROM metals m
+        """)
+
+        metals = []
+
+        dataset = db_cursor.fetchall()
+
+        for row in dataset:
+
+            metal = Metal(row['id'], row['metal'], row['price'])
+
+            metals.append(metal.__dict__)
+
+    return metals
 
 def get_single_metal(id):
     """_summary_
@@ -60,3 +82,57 @@ def get_single_metal(id):
 
     return requested_metal
     
+def create_metal(metal):
+    # Get the id value of the last metal in the list
+    max_id = METALS[-1]["id"]
+
+    # Add 1 to whatever that number is
+    new_id = max_id + 1
+
+    # Add an `id` property to the metal dictionary
+    metal["id"] = new_id
+
+    # Add the metal dictionary to the list
+    METALS.append(metal)
+
+    # Return the dictionary with `id` property added
+    return metal
+
+def delete_metal(id):
+    # Initial -1 value for metal index, in case one isn't found
+    metal_index = -1
+
+    # Iterate the metalS list, but use enumerate() so that you
+    # can access the index value of each item
+    for index, metal in enumerate(METALS):
+        if metal["id"] == id:
+            # Found the metal. Store the current index.
+            metal_index = index
+
+    # If the metal was found, use pop(int) to remove it from list
+    if metal_index >= 0:
+        METALS.pop(metal_index)
+
+def update_metal(id, metal_update):
+    """args int id, json string metal, function finds metal dictionary, replaces with new one """
+    with sqlite3.connect("./kneeldiamonds.sqlite3") as conn:
+        db_cursor = conn.cursor()
+
+        db_cursor.execute("""
+        UPDATE Metals
+            SET
+                metal = ?,
+                price = ?
+        WHERE id = ?
+        """, (metal_update['metal'], metal_update['price'], id, ))
+
+        # Were any rows affected?
+        # Did the client send an `id` that exists?
+        rows_affected = db_cursor.rowcount
+
+    if rows_affected == 0:
+        # Forces 404 response by main module
+        return False
+    else:
+        # Forces 204 response by main module
+        return True

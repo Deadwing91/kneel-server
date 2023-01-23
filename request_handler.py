@@ -1,8 +1,8 @@
 import json
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from views import get_all_metals, get_single_metal
-from views import get_all_styles, get_single_style
-from views import get_all_sizes, get_single_size
+from views import get_all_metals, get_single_metal, create_metal, update_metal
+from views import get_all_styles, get_single_style, create_style
+from views import get_all_sizes, get_single_size, create_size
 from views import get_all_orders, get_single_order, create_order, delete_order, update_order
 
 
@@ -41,92 +41,145 @@ class HandleRequests(BaseHTTPRequestHandler):
     # Here's a class function
     def do_GET(self):
         """Handles GET requests to the server """
-        self._set_headers(200)
-        response = {} # Default response
+        response = {} #Default response
 
-        # Parse the URL and capture the tuple that is returned
+        #Parse the URL and capture the tuple that is returned
         (resource, id) = self.parse_url(self.path)
 
+        #Check the path, return the correlating response
         if resource == "metals":
             if id is not None:
                 response = get_single_metal(id)
-            else:
-                response = get_all_metals()
 
+                if response is not None:
+                    self._set_headers(200)
+
+                elif response is None:
+                    self._set_headers(404)
+                    response = { "message": "That metal is not currently in stock for jewelry." }
+
+            else:
+                self._set_headers(200)
+                response = get_all_metals()
         elif resource == "sizes":
             if id is not None:
                 response = get_single_size(id)
-            else:
-                response = get_all_sizes()
 
+                if response is not None:
+                    self._set_headers(200)
+
+                elif response is None:
+                    self._set_headers(404)
+                    response = { "message": "That size is not currently in stock for jewelry." }
+
+            else:
+                self._set_headers(200)
+                response = get_all_sizes()
         elif resource == "styles":
             if id is not None:
                 response = get_single_style(id)
-            else:
-                response = get_all_styles()
 
+                if response is not None:
+                    self._set_headers(200)
+
+                elif response is None:
+                    self._set_headers(404)
+                    response = { "message": "That style is not currently in stock for jewelry." }
+
+            else:
+                self._set_headers(200)
+                response = get_all_styles()
+        elif resource == "pieces":
+            if id is not None:
+                response = get_single_style(id)
+
+                if response is not None:
+                    self._set_headers(200)
+
+                elif response is None:
+                    self._set_headers(404)
+                    response = { "message": "That piece is not currently in stock for jewelry." }
+
+            else:
+                self._set_headers(200)
+                response = get_all_styles()
         elif resource == "orders":
             if id is not None:
                 response = get_single_order(id)
+
+                if response is not None:
+                    self._set_headers(200)
+
+                elif response is None:
+                    self._set_headers(404)
+                    response = { "message": "That order was never placed, or was cancelled." }
+
             else:
+                self._set_headers(200)
                 response = get_all_orders()
 
-        else:
-            response = []
-
+        #Send a JSON formatted string as a response
         self.wfile.write(json.dumps(response).encode())
 
     def do_POST(self):
-        """Handles POST requests to the server """
-        self._set_headers(201)
+        """Handles POST requests to the server"""
 
+        self._set_headers(201)
         content_len = int(self.headers.get('content-length', 0))
         post_body = self.rfile.read(content_len)
+
         post_body = json.loads(post_body)
-        response = { "payload" : post_body }
 
         (resource, id) = self.parse_url(self.path)
-
-        response = None
 
         if resource == "orders":
-            response = create_order(post_body)
-            
-
-        self.wfile.write(json.dumps(response).encode())
+            new_order = None
+            new_order = create_order(post_body)
+            self.wfile.write(json.dumps(new_order).encode())
 
     def do_DELETE(self):
-        """_summary_
-
-        Returns:
-            _type_: _description_
-        """
-    # Set a 204 response code
+        """Handles DELETE requests to the server"""
+        # Set a 204 response code
         self._set_headers(204)
 
-    # Parse the URL
+        # Parse the URL
         (resource, id) = self.parse_url(self.path)
 
-        if resource == "order":
+        # Delete a single order from the list
+        if resource == "orders":
             delete_order(id)
 
+        # Encode the new animal and send in response
         self.wfile.write("".encode())
 
     def do_PUT(self):
-        """Handles PUT requests to the server """
-        #self.do_POST()
-        self._set_headers(204)
+        """Handles PUT requests to the server"""
         content_len = int(self.headers.get('content-length', 0))
         post_body = self.rfile.read(content_len)
         post_body = json.loads(post_body)
 
-
+        # Parse the URL
         (resource, id) = self.parse_url(self.path)
 
-        if resource == "orders":
-            update_order(id, post_body)
+        success = False
 
+        if resource == "metals":
+            success = update_metal(id, post_body)
+
+            if success:
+                self._set_headers(204)
+            else:
+                self._set_headers(404)
+
+            # Encode the new resource and send in response
             self.wfile.write("".encode())
+
+        # Update a single resource from the list
+        elif resource == "orders":
+            self._set_headers(403)
+            update_order(id, post_body)
+            response = {"message": "Order has been accepted. Modification requires contacting the company directly."}
+            self.wfile.write(json.dumps(response).encode())
 
     def _set_headers(self, status):
         """Sets the status code, Content-Type and Access-Control-Allow-Origin
